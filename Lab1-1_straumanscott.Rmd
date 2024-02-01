@@ -1,0 +1,36 @@
+---
+title: "Lab 1-1 - Importing and Subsetting a Dataset"
+author: "AJ Strauman-Scott"
+output: html_document
+date: "2024-02-01"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+First, import libraries to use in the session. Usually this code would be hidden
+```{r}
+library('tidyverse')
+```
+
+Next, import the data into the RStudio project as a data frame. We are using the `na.strings` aruegment to replace missing values coded as "?" strings to missing values recognized by the program.
+
+```{r}
+bridges <- read.csv("https://archive.ics.uci.edu/ml/machine-learning-databases/bridges/bridges.data.version2", header= FALSE, sep=",",na.strings = "?")
+```
+
+Give the columns names based on the data director
+
+```{r}
+colnames(bridges) <- c("ID", "RIVER", "LOCATION","ERECTED","PURPOSE","LENGTH","LANES","CLEAR-G","T-OR-D","MATERIAL","SPAN","REL-L","TYPE")
+```
+
+Subset the data to focus on only those observations that interest us. For instance, how many of the aqueducts are made of wood?
+
+```{r}
+wood_aqueducts <- subset(bridges, PURPOSE == "AQUEDUCT" & MATERIAL == "WOOD")
+head(wood_aqueducts)
+```
+
+There are only 3 wooden aqueducts in Pittsburgh, it seems!
