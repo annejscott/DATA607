@@ -1,0 +1,40 @@
+---
+title: "607 Assignment 2"
+author: "AJ Strauman-Scott"
+output: html_document
+date: "2024-02-03"
+---
+Because we were unable to successfully install and set-up the PostgreSQL and ODBC drivers for RStudio that would allow us to make a direct connection to the databases in PostgreSQL, we have redone this homework to export the tables we made in PostgreSQL to.csv, and we will now import those files from where I have uploaded them on GitHub.
+
+I have uploaded my issues to our Slack channel for help and will continue to troubleshoot the issue.
+
+
+```{r}
+# Import the data
+movies <- data.frame(read.csv("https://github.com/annejscott/DATA607/raw/main/607_assignment_2/exported_from_sql/wk2assignments.movies.csv", header = FALSE, sep = ","))
+
+moviescol <- c("id", "title", "year", "actor", "actress", "imdb")
+
+colnames(movies) <- moviescol
+
+head(movies)
+```
+
+```{r}
+ratings <- data.frame(read.csv("https://github.com/annejscott/DATA607/raw/main/607_assignment_2/exported_from_sql/wk2assignments.ratings.csv", header = FALSE, sep = ","))
+
+ratingscol <- c("person_id", "movie_id", "rating")
+
+colnames(ratings) <- ratingscol
+
+head(ratings)
+```
+
+```{r}
+surveytakers <- data.frame(read.csv("https://github.com/annejscott/DATA607/raw/main/607_assignment_2/exported_from_sql/wk2assignments.surveytakers.csv", header = FALSE, sep = ","))
+
+peoplecol <- c("id", "name")
+
+colnames(surveytakers) <- peoplecol
+head(surveytakers)
+```
