@@ -1,0 +1,58 @@
+---
+title: "DATA 607 Assignment 1"
+author: "AJ Strauman-Scott"
+output: html_document
+date: "2024-02-01"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# The Lasting Legacy Of Redlining
+
+## Introduction
+
+Today we will be examining data used by FiveThirtyEight.com to determine whether those neighborhoods that were "redlined" by the Home Owners’ Loan Corporation (HOLC) in the early 20th century are still affected by that designation over a century later.
+
+For twenty years, the HOLC worked to grade neighborhoods across America based on their perceived mortgage-lending risk. Unfortunately, the HOLC perceived neighborhoods with large populations of people of color to innately "hazardous", or at high risk for defaulting on mortgage loans. HOLC officials concluded these high risk levels based on a “strong colored infiltration”.
+
+Marking these neighborhoods in red, and neighborhoods with very low populations of people of color with green (and therefore low-risk to mortgage lenders), the HOLC created a legacy of systemic racism known as "redlining". FiveThirtyEight outlines the legacy of redlining and their own analysis of this data [here](https://projects.fivethirtyeight.com/redlining/).
+
+## The Datasets
+
+The analysis of redlining legacy relied on two separate datasets: 
+  - `metro-grades.csv` contains 2020 population total estimates by race/ethnicity for combined zones of each redlining grade (from Home Owners' Loan Corporation [HOLC] maps originally drawn in 1935-40, downloaded from the Mapping Inequality project) within micro- and metropolitan areas.
+  - `zone-block-matches.csv` matches 2020 U.S. decennial census blocks with histoircal Home Owners' Loan Corporation (HOLC) zones.
+
+### Import the Datasets
+
+We begin by importing both datasets in their original forms, and then adding column names to the variables.
+
+```{r}
+metro_grades <- data.frame(read.csv("https://github.com/fivethirtyeight/data/raw/master/redlining/metro-grades.csv", header = TRUE, sep = ","))
+
+zone_block_matches <- data.frame(read.csv("https://github.com/fivethirtyeight/data/raw/master/redlining/zone-block-matches.csv", header = TRUE, sep = ","))
+```
+
+### Tidy the Columns
+
+I will combine the `holc_city` & `holc_state` columns of `zone_block_match` into a single column that matches the `metro_area` column of `metro_grades` data frame.
+
+```{r}
+zone_block_matches$holc_metro <- paste(zone_block_matches$holc_city, ", ", zone_block_matches$holc_state)
+```
+
+### Subsetting the data sets
+
+Now we want to subset both data frames into the variables we are interested in analysing, as well as doing some preliminary cleanup. I am going to look at only data for one of my favorite cities, Asheville, NC, and subset the data into a new frame that only contains information about that geographical region.
+
+```{r}
+ashNC_grades <- subset(metro_grades, metro_area == "Asheville, NC")
+
+ashNC_zone_matches <- subset(zone_block_matches, holc_city == "Asheville" & holc_state == "NC")
+```
+
+## Additional Recommendations
+
+To continue the analysis of this data set, I recommend cross referencing the modern 2020 census populations of historic red- and green-lined HOLC areas with their HOLC grades, to see if modern population distributions would earn the same, similar or different grades from the HOLC today. The frequency with which those neighborhoods would maintain or change HOLC grade provides insights to the integration (or continued segregation) of these neighborhoods in the century since initially becoming redlined or greelined zones.
