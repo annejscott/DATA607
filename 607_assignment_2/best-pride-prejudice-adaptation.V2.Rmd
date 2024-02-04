@@ -1,0 +1,33 @@
+---
+title: "607 Assignment 2"
+author: "AJ Strauman-Scott"
+output: html_document
+date: "2024-02-03"
+---
+# Code to Connect to PostgreSQL
+```{r}
+library(RPostgres)
+
+con <- dbConnect(
+  Postgres(),
+  dbname = "wk2assignment",
+  host = "localhost",
+  port = 5433,
+  password = "RIGHTFULpun",
+  user = "postgres")
+
+dbListTables(con)
+```
+
+# Pulling the tables into R Studio
+```{r}
+dbReadTable(con, "movies")
+```
+
+```{r}
+dbReadTable(con, "surveytakers")
+```
+
+```{r}
+dbReadTable(con, "ratings")
+```
