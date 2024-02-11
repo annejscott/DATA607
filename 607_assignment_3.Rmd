@@ -1,0 +1,115 @@
+---
+title: "607 Week 3 Assignment"
+author: "AJ Strauman-Scott"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Number 1
+Using the 173 majors listed in fivethirtyeight.com’s College Majors dataset, we are asked to provide code that identifies the majors that contain either "DATA" or "STATISTICS". I consulted with Evelyn Bartley on this question in regards to importing the table. I have chosen to present my results as a data frame.
+
+```{r}
+# Import the dataset
+ majors <- read.csv("https://raw.githubusercontent.com/fivethirtyeight/data/master/college-majors/majors-list.csv", header = TRUE, sep = ",")
+
+# Subset the majors with "DATA" or "STATISTICS
+data_stats_majors <- majors$Major[str_detect(majors$Major, "DATA|STATISTICS")]
+
+# Change to a data frame
+data_stats_majors <- data.frame(data_stats_majors)
+
+# Rename the Column
+colnames(data_stats_majors) <- "Majors in Data or Stats"
+
+# Print the Table
+print(data_stats_majors)
+```
+
+## Number 2
+We are asked to transform the `strIn` string object into the `strOut` object, where:
+```{r}
+strIn =
+'[1] "bell pepper"  "bilberry"     "blackberry"   "blood orange"
+[5] "blueberry"    "cantaloupe"   "chili pepper" "cloudberry"  
+[9] "elderberry"   "lime"         "lychee"       "mulberry"    
+[13] "olive"        "salal berry"'
+
+# and 
+
+strOut =
+'c("bell pepper", "bilberry", "blackberry", "blood orange", "blueberry", "cantaloupe", "chili pepper", "cloudberry", "elderberry", "lime", "lychee", "mulberry", "olive", "salal berry")'
+```
+
+Find my code for this transformation here:
+```{r}
+# Use extract function to separate all phrases
+final_string <- strIn %>%
+  str_extract_all('"[^"]+"') %>%
+  
+# Unlist the results into a vector
+  unlist() %>% 
+  
+# Paste the strings of the vector together with a comma and space separating all entries
+  paste(collapse = ', ') %>%
+  
+# Add the opening and ending characters to the string
+  str_c('c(', ., ')')
+
+# Write out the results
+writeLines(final_string)
+
+# Confirm final_string matches strOut
+print(final_string == strOut)
+```
+*Note*: I also consulted with Evelyn on this question, regarding issues with using `str_split()` originally where I eventually used `str_extract_all()`/
+## Number 3
+Describe in words what the following expressions of R strings will produce:
+
+- **(.)\1\1**: 
+  This expression will **ERROR**. In unescaped backslash \ within a string indicates an *escape* for the following character. In the expression "(.)\1\1", "\1" is read as an attempt to escape the character 1, rather than as a backreference. If corrected to "(.)\\1\\1", this regular expression will return triple repeats of any character, as demonstrated here:
+```{r}
+str_view(c("aaa", "abc", "111", "123"), "(.)\\1\\1")
+```
+- **"(.)(.)\\2\\1"**: This regular expression matches an "ABBA" pattern int a string. It looks for any pattern that where the first two characters repeat in reverse order.
+```{r}
+str_view(c("ABBA", "1221", "ABAB", "1212"), "(.)(.)\\2\\1")
+```
+- **(..)\1**: Again, this expression would return an **ERROR**, because the single backslash is read by R as an *escape* from the character 1, rather than a call for a repeated value. If corrected to "(..)\\1", this expression will match with any string containing characters in an "ABAB" pattern. 
+```{r}
+str_view(c("ABBA", "1221", "ABAB", "1212"), "(..)\\1")
+```
+- "(.).\\1.\\1": matches any string that contains three of the same letters separated by one letter each
+```{r}
+str_view(c("abacad", "abbaccadd", "alabama"), "(.).\\1.\\1")
+```
+- "(.)(.)(.).*\\3\\2\\1": matches a string with any "abc" pattern that then repeats in reverse order, not necessarily consecutively.
+```{r}
+str_view(c("abacad", "defABCghiCBAjk", "ABCdeCBA"), "(.)(.)(.).*\\3\\2\\1")
+```
+
+## Number 4
+Construct regular expressions to match words that:
+- Start and end with the same character: 
+  The regular expression that matches words that start & end with the same character is "^(.).*\\1$"
+```{r}
+states = c("alaska", "alabama", "kentucky")
+str_view(states, "^(.).*\\1$")
+```
+- Contain a repeated pair of letters (e.g. "church" contains "ch" repeated twice.):
+The regular expression that matches words that include same two characters repeated twice is "(..).*\\1"
+```{r}
+double_letters = c("church", "abab", "five", "magicmark")
+str_view(double_letters, "(..).*\\1")
+```
+- Contain one letter repeated in at least three places (e.g. "eleven" contains three "e"s.):
+The regular expression that matches words that include same two characters repeated twice is "(.).*\\1.*\\1"
+```{r}
+letter_repeats <- c("eleven", "alabama", "aardvark")
+str_view(letter_repeats, "(.).*\\1.*\\1")
+```
