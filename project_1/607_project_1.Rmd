@@ -1,0 +1,168 @@
+---
+title: "Data 607 Project 1"
+author: "AJ Strauman-Scott"
+date: "2024-02-12"
+output:
+  pdf_document: default
+  html_document:
+    includes:
+      in_header: header.html
+    css: ./lab.css
+    highlight: pygments
+    theme: cerulean
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), tidy=TRUE)
+```
+
+# Introduction
+
+For this project, we have received a text file with chess tournament results. This text file, while legible to the human eye, is in a format that is very difficult for a computer to read.
+
+Our goal is to input and clean the data, calculate a new variable to display the average pre-tournament ranking for each player's opponents across the 7 rounds, and then export a .csv file containing a data table with the player's names, states, total points, pre-tournament ranking, and average pre-tournament ranking of their opponent.
+
+#### Collaboration
+
+The author worked in a group with Evelyn, James and Dhanya on Slack to troubleshoot through this project.
+
+#### Load Libraries
+
+We will use the `tidyverse`, `knitr` and `rebus` packages.
+
+```{r load libraries, message = FALSE}
+library(tidyverse)
+library(knitr)
+library(rebus)
+```
+
+## Importing the Data
+
+We begin by importing the .txt file from Github. We specify the deliminator as the bar `|`, that there are no column names, and to skip the first 4 lines of the text.
+
+```{r import data, warning = FALSE}
+# Import the Files
+chessImported <- read_delim("https://github.com/annejscott/DATA607/raw/main/project_1/tournamentinfo.txt", delim = "|", col_names = FALSE, skip = 4, show_col_types = FALSE)
+
+# Convert the file to a data frame
+chessImported <- data.frame(chessImported)
+
+glimpse(chessImported)
+
+```
+
+As you can see, there is a limit to what our `read_delim` function can do with this file.
+
+## Tidy The Data
+
+Our next step is to tidy the data into a usable form that both we and the computer can read. We need to:
+
+-   remove the empty column at the end
+
+-   remove the rows with only dashes in the first column
+
+-   combine rows in twos to create the full record of each observation
+
+-   extract the relevant numerical data from the generated strings in the columns for the pre-tournament ranking and the seven rounds, and format it to the correct data type
+
+```{r tidy the data}
+# Remove the NA rows
+chessImported <- subset(chessImported, chessImported$X1 != chessImported$X1[3])
+
+# Remove the NA column
+chessImported <- subset(chessImported, select = -X11)
+
+# Separate out the data interatively
+# initialize the two data frames
+name_rows <- data.frame()
+state_rows <- data.frame()
+
+# Use recursion to create two data frames
+for (i in 1:nrow(chessImported)) {
+  this_row <- chessImported[i,]
+  if (i %% 2 == 1) {
+    name_rows <- rbind(name_rows, this_row)
+  } 
+  else {
+    state_rows <- rbind(state_rows, this_row)
+  }
+}
+
+# Combine the data sets
+chessGoodRows <- cbind(name_rows, state_rows)
+
+# Rename the columns
+new_col_names <- c("num", "name", "points", "rd1", "rd2", "rd3", "rd4", "rd5", "rd6", "rd7", "state", "prerank")
+colnames(chessGoodRows) <- new_col_names
+
+# Keep only columns of interest and rearrange
+chessRelevent <- chessGoodRows[, c("num", "name", "state","points", "prerank", "rd1", "rd2", "rd3", "rd4", "rd5", "rd6", "rd7")]
+
+# Renumber the rows
+new_row_nums <- c(1:nrow(chessRelevent))
+rownames(chessRelevent) <- as.character(new_row_nums)
+
+# Extract numeric data from strings in each of the columns
+chessClean <- chessRelevent %>% 
+  mutate(prerank = as.numeric(str_sub(prerank, 16, 19)), 
+        rd1 = as.numeric(str_extract(rd1, "\\d+")),
+        rd2 = as.numeric(str_extract(rd2, "\\d+")),
+        rd3 = as.numeric(str_extract(rd3, "\\d+")),
+        rd4 = as.numeric(str_extract(rd4, "\\d+")),
+        rd5 = as.numeric(str_extract(rd5, "\\d+")),
+        rd6 = as.numeric(str_extract(rd6, "\\d+")),
+        rd7 = as.numeric(str_extract(rd7, "\\d+")),
+        points = as.numeric(str_trim(points)),
+        num = as.numeric(num),
+        name = str_trim(name),
+        state = str_trim(state)
+        )
+
+glimpse(chessClean)
+```
+
+Our data is now clean and usable for both ourselves and the computer.
+
+## Calculate Average Opponents' Pre-Tournament Ranking
+
+In order to output the requested variables in our output file, we need to create a new variable, that calculates the average pre-tournament ranking of each player's opponents.
+
+To accomplish this, we use the number of each player's opponent in each round to look up that players pre-tournament ranking, and then replace the opponent's number with the opponent's pre-tournament ranking in that round's column.
+
+From there, we calculate the mean across rows to generate our new variable.
+
+```{r}
+# Reassign prerank values to their opponent numbers in the rounds columns
+rounds <- c("rd1", "rd2", "rd3", "rd4", "rd5", "rd6", "rd7")
+
+for (rds in rounds) {
+  for (opp in seq_along(chessClean[[rds]])) {
+    chessClean[[rds]][opp] <- chessClean$prerank[chessClean[[rds]][opp]]
+  }
+}
+
+# Calculate the average of each opponent's prerank.
+chessAvg <- chessClean %>% 
+  rowwise() %>%  
+  mutate(opp_avg = round(mean(c(rd1, rd2, rd3, rd4, rd5, rd6, rd7), na.rm = T), digits = 0))
+
+# Extract only columns of interest
+chessFinal <- chessAvg[, c("name", "state","points", "prerank", "opp_avg")]
+
+glimpse(chessFinal)
+```
+
+Our dataset is complete! We have all our data defined for the correct variables, in the correct data type. We're ready to export.
+
+## Export to .csv
+
+Now we use the `write_csv` function to export our clean and ready dataset as the requested .csv file.
+
+```{r export.csv}
+# Export .csv file
+write_csv(chessFinal, "chess_tournament_final.csv")
+```
