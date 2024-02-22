@@ -1,0 +1,140 @@
+---
+title: "DATA 607 Week 5 Assignment"
+author: "AJ Strauman-Scott"
+output: html_document
+date: "2024-02-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::include_graphics
+```
+
+## Introduction
+
+We have been provided this "wide" dataset with the following instructions:
+
+1.  Create a .csv file that matches the 'wide' structure of the data we were provided, in order to practice our `tidyr` and `dplyr` data scrubbing skills.
+
+2.  Read the .csv file into R Studio, and use the packages above to tidy and transform the data as required.
+
+3.  Perform analysis to compare the arrival delays for the two airlines
+
+## Import the Data
+
+I will now import my 'wide' format .csv file of the given data captured with a literal interpretation into a spreadsheet.
+
+```{r import-the-csv, message=FALSE}
+# Import the tidyverse package
+library(tidyverse)
+
+# Import the .csv file
+flight_arrivals <- read_csv('https://github.com/annejscott/DATA607/raw/main/607_assignment_wk5/flight_arrivals.csv', col_names = TRUE, skip_empty_rows =  TRUE, show_col_types = FALSE)
+
+head(flight_arrivals)
+
+```
+
+Our data has imported as we entered it in the Excel spreadsheet. We have a lot of tidying to do!
+
+## Tidy the Data
+
+We would like to tidy and transform the data to achieve a 'long' format where each of the numbers of arrivals - for either airline, and whether on-time or delayed - has their own row.
+
+To achieve this, we will aim to tidy the data into the following four columns of the following data types:
+
+-   'airline' [char] : either 'ALASKA' or 'AM WEST'
+
+-   'delay' [char]: either 'delayed' or 'on time'
+
+-   'destination' [char]: one of 5; 'Los Angeles', 'Phoenix', 'San Diego', 'San Francisco' or 'Seattle'
+
+-   'num_flights' [int]: the 'key' column of unique values
+
+Let's begin by giving the first two columns our intended names.
+
+```{r col_names}
+colnames(flight_arrivals)[1] <- "airline"
+colnames(flight_arrivals)[2] <- "delay"
+```
+
+Since the `skip_empty_rows` parameter did not remove our empty middle row, lets removing it ourselves
+
+```{r remove-empty-row}
+# Find all the empty rows
+empty <- which(apply(flight_arrivals, 1, function(row) all(row == "" | is.na(row))))
+
+# Remove empty rows
+flight_arrivals <- flight_arrivals[-empty, ]
+
+head(flight_arrivals)
+```
+
+Our next step is to fill in the missing data we can extrapolate in the first column.
+
+```{r missing-airlines}
+# Copy the row above
+for (r in 1:length(flight_arrivals$airline)) {
+  if (is.na(flight_arrivals$airline[r])) {
+    flight_arrivals$airline[r] <- flight_arrivals$airline[r - 1]
+  }
+}
+
+head(flight_arrivals)
+```
+
+### Tidying with `pivot_longer()`
+
+In order to create a 'long' table, I will need a row for every count of arrivals. I achieve this by pivoting around the destinations.
+
+```{r pivot_longer}
+flight_arrivals <- flight_arrivals %>% 
+  pivot_longer(
+    cols = c("Los Angeles", "Phoenix", "San Diego", "San Francisco", "Seattle"),
+    names_to = 'destination',
+    values_to = 'num_flights'
+  )
+head(flight_arrivals)
+```
+
+Our tidying is complete!
+
+## Data Analysis
+
+### Descriptive Statistics
+
+We are asked to perform analysis to compare the arrival delays for the two airlines. At this step, I will generate summary statistics to begin my comparison. Most notably, I am interested in how many flights out of the total each airline flew to each destination were delayed. I am going to calculate the % each airline was delayed for each destination and add it as a column to the table.
+
+```{r delay_percent}
+flight_percent <- flight_arrivals %>%
+  group_by(airline, destination) %>%
+  mutate(total_flights = sum(num_flights),
+            delayed_flights = sum(num_flights[delay == "delayed"]),
+            percent_delayed = (delayed_flights / total_flights) * 100)
+
+head(flight_percent)
+
+```
+
+Let's make a graph that compares the percentage of flights that is delayed at each location, by airline:
+
+```{r bar-plot}
+# Creating another column with the city initials for graphing appeal
+flight_percent <- flight_percent %>%
+  mutate(initials = sapply(strsplit(as.character(destination), " "), function(x) paste0(substr(x, 1, 1), collapse = "")))
+
+# Ploting the graph
+ggplot(flight_percent, aes(x = initials, y = percent_delayed, fill = airline)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Percentage of Delayed Flights",
+       x = "Destination",
+       y = "Percent pf Flights Delayed") +
+  scale_fill_manual(values = c("ALASKA" = "#2CA02C", "AM WEST" = "#5DA5DA")) +
+  theme_minimal()
+```
+
+The bar plot makes it clear - the airline AM West has a higher percent of its flights delayed than the airline Alaska going to all five destinations. This is true even though Alaska has more flights of the destinations overall.
+
+## Conclusion
+
+After tidying the data into a 'long' form data set, where the number of flights for each airline to each destination, either on time or delayed, was treated as a unique, 'key' value on which to use the `dplyr` and `tidyr` verbs, `pivot_longer`, `group_by`, and `mutate`.
