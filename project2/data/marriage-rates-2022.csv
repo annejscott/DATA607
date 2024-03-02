@@ -1,6 +1,4 @@
-﻿Group,population,populationMOE,Married by percent,Married MOE,Widowed by percent,Widowed MOE,Divorced by percent,Divorced MOE,Separated by percent,Separated MOE,Never married by percent,never married MOE
-Population 15 years and over,"273,938,835","±39,204",48.00%,±0.1,5.50%,±0.1,10.50%,±0.1,1.70%,±0.1,34.30%,±0.1
-    AGE AND SEX,,,,,,,,,,,,
+﻿Group,population,population_moe,Married by percent,Married MOE,Widowed by percent,Widowed MOE,Divorced by percent,Divorced MOE,Separated by percent,Separated MOE,Never married by percent,never married MOE
         Males 15 years and over,"134,829,992","±33,498",49.80%,±0.1,2.60%,±0.1,9.00%,±0.1,1.40%,±0.1,37.20%,±0.1
             15 to 19 years,"11,167,522","±29,157",1.00%,±0.1,0.00%,±0.1,0.00%,±0.1,0.10%,±0.1,98.90%,±0.1
             20 to 34 years,"34,518,927","±31,844",25.70%,±0.2,0.10%,±0.1,2.10%,±0.1,0.70%,±0.1,71.30%,±0.2
@@ -15,24 +13,3 @@ Population 15 years and over,"273,938,835","±39,204",48.00%,±0.1,5.50%,±0.1,1
             45 to 54 years,"20,175,854","±19,783",63.00%,±0.2,2.40%,±0.1,17.20%,±0.2,3.10%,±0.1,14.30%,±0.1
             55 to 64 years,"21,471,526","±14,004",60.20%,±0.2,6.80%,±0.1,19.80%,±0.2,2.60%,±0.1,10.60%,±0.1
             65 years and over,"31,897,671","±15,875",46.10%,±0.2,29.50%,±0.1,16.80%,±0.1,1.20%,±0.1,6.40%,±0.1
-Population 15 years and over,"273,938,835","±39,204",48.00%,±0.1,5.50%,±0.1,10.50%,±0.1,1.70%,±0.1,34.30%,±0.1
-,,,,,,,,,,,,
-,,,,,,,,,,,,
-,,,,,,,,,,,,
-,,,,,,,,,,,,
-,,,,,,,,,,,,
-,,,,,,,,,,,,
-,,,,,,,,,,,,
-,,,,,,,,,,,,
-,,,,,,,,,,,,
-,,,,,,,,,,,,
-,,,,,,,,,,,,
-,,,,,,,,,,,,
-,,,,,,,,,,,,
-,,,,,,,,,,,,
-,,,,,,,,,,,,
-,,,,,,,,,,,,
-,,,,,,,,,,,,
-,,,,,,,,,,,,
-,,,,,,,,,,,,
-,,,,,,,,,,,,
