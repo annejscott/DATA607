@@ -1,0 +1,378 @@
+---
+title: "Tidying Datasets with Wickham's Tidyverse"
+format:
+  jasa-html:
+    keep-tex: true  
+    journal:
+      blinded: false
+  jasa-pdf:
+    preset: manuscript
+date: last-modified
+author:
+  - name: "AJ Strauman-Scott"
+    affiliations:
+      - name: City University of New York SPS
+        department: Department of Data Analytics
+bibliography: bibliography.bib  
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+## Introduction
+
+This examination aims to prepare a diverse trio of datasets for
+subsequent analysis through employment of the principles outlined by
+Hadley Wickham in 'Tidy Data' [-@tidy]. These principles (outlined
+in [@sec-tidy]) give a standard for the ideal dataset structure, as
+well as a set of tools from the 'tidyverse' set of R packages for
+cleaning, tidying and transforming any dataset into an imitation of of
+that ideal.
+
+The objectives for each dataset chosen are multi-faceted:
+
+-   import a .CSV file of the dataset, adopting a "wide" structure akin
+    to its original presentation
+
+-   leverage the capabilities of `tidyr` and `dplyr` packages to
+    meticulously tidy and transform the dataset
+
+-   model achievement of Wickham's gold standard and ease of use through cursory exploratory analysis.
+
+### Tidy Data Definition {#sec-tidy}
+
+```{r load-libraries, message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+According to Wickham [-@tidy], there are interrelated rules that define
+a tidy dataset:
+
+1.  Each variable is a column; each column is a variable.
+
+2.  Each observation is a row; each row is an observation.
+
+3.  Each value is a cell; each cell is a single value.
+
+4.  Each type of observational unit is a table.
+
+The principles above often transform a data set into a 'clean' state,
+with many more rows and many fewer columns than the original set.
+Informally, this is a 'wide' to 'long format transformation. In
+practice, nearly every real world dataset begins 'untidy' and 'is dirty
+in their own way' [@tidy]. This is because data is often organized to
+facilitate some goal other than analysis. For example, it’s common for
+data to be structured to make data entry, not analysis, easy.
+
+The steps to tidy data are simple. First,
+identify what the underlying variables and observations are. And then
+melt, split, and cast the data into tidy form.
+
+## First Dataset {#sec-data1}
+
+Angel Gallardo provided the first 'untidy' dataset for cleaning and
+analysis.
+
+Extracted from the Food and Agriculture Organization of the United
+Nations [-@fao2022] in March 2023, CID Admin queried the climate
+indicators database to create the Annual Surface Temperature Change
+dataset.
+
+The dataset contains annual estimates of mean surface temperature change
+measured with respect to a baseline climatology, corresponding to the
+period 1951-1980. Estimates of those changes in the mean surface
+temperature are presented, in degree Celsius, for the years 1961-2021 by
+country.
+
+### Tidy the Data
+
+Since the observations are the change in average temperature, each of
+these needs a row. The underlying variables of this dataset are the
+country, the year, and the average change in degrees Celsius. These are
+the only columns the tidy dataset will have.
+
+```{r climate-import-data}
+climate <- read_csv("https://github.com/annejscott/DATA607/raw/main/project2/data/climate-change.csv", show_col_types = FALSE)
+```
+
+Steps to tidy this dataset include:
+
+-   removing columns with only 1 unique value
+
+-   pivoting all the years into a single column
+
+-   confirming all columns are the correct type
+
+```{r climate-unique-values}
+unique_values <- climate %>%
+  select(5:10) %>%
+  summarise(across(everything(), unique))
+
+knitr::kable(unique_values, format = "html")
+```
+
+When asked for all the unique answers for the above five columns, all returned only a single value. These columns contains only metadata and should be removed.
+
+```{r climate-remove-col}
+climate <- climate[, -c(1, 4:10)]
+```
+
+In the next code block, the tidying step 'melting' will pivot all the 'years' into a single column, and convert the column from character  to numeric.
+
+```{r climate-pivot-longer}
+climate_tidy <- climate %>%
+  mutate(year_list = list(names(climate)[3:length(climate)])) %>%
+  pivot_longer(cols = -c(Country, ISO2, year_list), names_to = "year", values_to = "temp") %>%
+  mutate(year = as.numeric(year)) %>% 
+  select(country = Country, iso2 = ISO2, year, temp)
+```
+
+This dataset is now 'tidy'! Every variable is a column (both
+'country' and 'iso2' code have been kept in for human programmer
+ease-of-use) and every observation is a row.
+
+```{r climate-table, echo=FALSE}
+top_10_rows <- slice_head(climate_tidy, n = 10)
+knitr::kable(top_10_rows, format = "html")
+```
+
+### Exploratory Analysis
+
+The tidy data easily subsets into datsets of mean and median change for each country by year, and each year by country.
+
+```{r climate-eda}
+# Median & mean for each country by year
+climate_country_avg <- climate_tidy %>%
+  group_by(country) %>%
+  summarize(median_temp_change = median(temp, na.rm = TRUE),
+            mean_temp_change = mean(temp, na.rm = TRUE))
+
+# Median and mean for each year by country
+climate_year_avg <- climate_tidy %>% 
+  group_by(year) %>% 
+  summarize(median_temp_change = median(temp, na.rm = TRUE),
+            mean_temp_change = mean(temp, na.rm = TRUE))
+```
+
+From these, plotting median temperature change for each year across all countries reveals a ominious trend.
+
+```{r climate-plot, message=FALSE}
+ggplot(climate_year_avg, aes(x = year, y = median_temp_change)) +
+  geom_line(color = "blue") +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(x = "Year", y = "Median Temperature Change") +
+  theme_minimal()
+```
+Fit with a red line showing the linear regression model, it's clear the not only is the early warming, but the pace at which it is doing so is speeding up.
+
+## Second Dataset {#sec-data2}
+
+Brandon Cunningham provided the second 'untidy' dataset.
+
+This query to the U.S. Census Bureau 2022 American Community Survey accesses the ACS 1-Year Estimates Subject Table S1201, "Marital Status" [@census].
+
+The dataset describes the age and gender of the percent of population who are married, widowed, divorced, separated or single, respectively.
+
+### Tidy the Data
+
+The observations for this second dataset are the percent and population numbers for each of the sub-demographics. 
+
+The underlying variables of this dataset the demographic designation (gender and age group), category (e.g. 'married'), number of people, and percent of total population.
+
+```{r marriage-import}
+marriage <- read_csv("https://github.com/annejscott/DATA607/raw/main/project2/data/marriage-rates-2022.csv", show_col_types = FALSE)
+```
+
+Steps to tidy this dataset include:
+
+-   creating a new column for male/female designation
+
+-   creating a new column of population numbers for each designation and category
+
+-   converting all percents to numerals
+
+
+```{r marriage-extract-sex}
+marriage <- marriage %>% 
+  mutate(gender = str_extract(Group, pattern = "(Males|Females)"),
+         gender = tolower(gender),
+         Group = str_replace(Group, pattern = "(Males|Females)", replacement = "")) %>%
+  fill(gender, .direction = "down")
+```
+
+Above, a new column 'gender' is split out from the 'age' variable. 
+
+In the next code block:
+
+-   'gender' and 'age' columns are converted to factors
+
+-   all the percents are converted to numerals
+
+-   new columns are created for population numbers for each relationship status
+
+```{r marriage-covert-cols}
+marriage <- marriage %>% 
+  mutate(
+    gender = as.factor(gender),
+    age = as.factor(str_trim(Group)),
+    pop = population,
+    married_per = parse_number(`Married by percent`) / 100,
+    widowed_per = parse_number(`Widowed by percent`) / 100,  
+    divorced_per = parse_number(`Divorced by percent`) / 100, 
+    separated_per = parse_number(`Separated by percent`) / 100, 
+    single_per = parse_number(`Never married by percent`) / 100,
+  ) %>% 
+  mutate(married = floor(pop * married_per),
+         widowed = floor(pop * widowed_per),
+         divorced = floor(pop * divorced_per),
+         separated = floor(pop * separated_per),
+         single = floor(pop * single_per)) %>% 
+  select(gender, age, pop, married, widowed, divorced, separated, single, married_per, widowed_per, divorced_per, separated_per, single_per)
+
+```
+
+As with the previous dataset, the tidying step 'melting' pivots all the relationship status columns into a single column. This step is performed twice, created two data subsets that are cast back together. Finally, the 'status' category is also converted to a factor.
+
+```{r marriage-pivot-join}
+total_long <- marriage %>%
+  pivot_longer(
+    cols = c(married, widowed, divorced, separated, single),
+    names_to = "status",
+    values_to = "total"
+  ) %>% 
+  select(gender, age, status, total)
+
+percent_long <- marriage %>%
+  pivot_longer(
+    cols = c(married_per, widowed_per, divorced_per, separated_per, single_per),
+    names_to = "status",
+    values_to = "percent"
+  ) %>%  
+  select(gender, age, status, percent)
+
+percent_long$status <- str_remove(percent_long$status, pattern="_per")
+
+marriage_tidy <- left_join(total_long, percent_long, by = c("status", "gender", "age"))
+
+marriage_tidy$status <- factor(marriage_tidy$status, levels = c("married", "single", "divorced", "widowed", "separated"))
+
+```
+
+A second dataset is 'tidy'! Every observation (subsection of the population and percent) has a row, and every variable (gender, age group, relationship status) has a column.
+
+```{r marriage-table, echo=FALSE}
+top_10_rows <- slice_head(marriage_tidy, n = 10)
+knitr::kable(top_10_rows, format = "html")
+```
+
+### Exploratory Analysis
+
+Finding out the demographics of each type of relationship status in the US and plot each one to compare them is simple with this tidied dataset.
+
+```{r marriage-married, message=FALSE, warning=FALSE}
+married <- marriage_tidy %>%
+  filter(age != "15 years and over") %>%
+  group_by(status, age, gender) %>%
+  summarise(percent = sum(percent) * 100)
+
+ggplot(married, aes(x = age, y = percent, fill = gender)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c("blue", "pink")) +
+  labs(x = "Age", y = "Total") +
+  ggtitle("Relationship Status by Age and Gender") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 5)) +
+  facet_wrap(~status) +
+  guides(scale = none, fill = FALSE)
+```
+
+
+## Third Dataset 
+
+Peter Thompson provided this third 'untidy' dataset.
+
+The Rates of COVID-19 Cases or Deaths by Age Group and Updated (Bivalent) Booster Status Public Use Data [-@cdc_covid]  show various statistics around the number of US persons who died from covid-19, and whether those person's were vaccinated. It reflect cases among persons with a positive specimen collection date through April 22, 2023, and deaths among persons with a positive specimen collection date through April 1, 2023.
+
+### Tidy the Data
+
+The article [-@covid-deaths] accompanying Peter's dataset suggestion ' How do death rates from COVID-19 differ between people who are vaccinated and those who are not?' states: 
+
+"To be able to say anything, we also need to know about those who did not die: how many people in this population were vaccinated? And how many were not vaccinated?"
+
+The observations are the percent rates, for all the combinations of the different demographics.
+
+The variables are mmwr_week (which indicates which week on a 1-52 count along with the year, and will be separated into two), age group, vaccination status, and ratio of cases to deaths for all.
+
+```{r covid, warnings=FALSE, messages=FALSE}
+covid <- read_csv("https://github.com/annejscott/DATA607/raw/main/project2/data/covid19.csv", show_col_types = FALSE)
+```
+Steps to tidy this final dataset include:
+
+-   converting 'outcome', 'age group' and vaccination status to factor categories
+
+-   spliting 'mmwr_week' into 'year' and 'week' columns
+
+-   creating new columns with status of vaccinated verses unvaccinated, and their percents.
+
+```{r covid-tidy-data}
+covid <- covid %>% 
+  filter(vaccination_status == "vaccinated") %>% 
+  mutate(outcome = as.factor(outcome),
+         age = as.factor(age_group),
+         year = floor(mmwr_week / 100),
+         week = sprintf("%02d", mmwr_week %% 100),
+         vaccinated = vaccinated_with_outcome / vaccinated_population,
+         unvaccinated = unvaccinated_with_outcome / unvaccinated_population) %>% 
+  select(year, week, outcome, age, vaccinated, unvaccinated)
+```
+
+To complete the cleaning, the unvaccinated and vaccinated percents need to be melted so they pivot into two new categories
+
+```{r covid-pivot}
+covid_tidy <- covid %>%  
+  pivot_longer(
+    cols = ends_with("ated"), 
+    names_to = "status", 
+    values_to = "percent"
+  )
+
+covid_tidy$percent <- covid_tidy$percent * 100
+```
+
+The final dataset has been tidied. Every cross section of the variables has a row, and every variable (year, week, age outcome) has a column.
+
+```{r covid-table, echo=FALSE}
+top_10_rows <- slice_head(covid_tidy, n = 10)
+knitr::kable(top_10_rows, format = "html")
+```
+
+### Exploratory Analysis
+
+Just as with our previous census dataset, tidy data facilitates ease in exploring relationships between the variables.
+
+```{r covid-plot, message=FALSE, warning=FALSE}
+covid_all_ages <- covid_tidy %>%
+  filter(age == "all_ages") %>%
+  group_by(outcome, year, status) %>% 
+  summarise(avg_percent = mean(percent))
+
+ggplot(covid_all_ages, aes(x = status, y = avg_percent, fill = outcome)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c("grey", "black")) +
+  scale_y_log10() +  # Use logarithmic scale for y-axis
+  labs(x = "Year", y = "Percent (Log Scale)") +
+  ggtitle("Covid Cases and Deaths by Year") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 5)) +
+  facet_wrap(~year)
+
+```
+## Conclusion
+
+As demonstrated, the principles of Tidy Data, as proposed by Hadley Wickham [-@tiday], coupled with the powerful tools provided by his `tidyverse` R packages, revolutionize the practice of data cleaning by standardizing and streamlining the process for data scientists. 
+
+By leveraging tidy data principles and the tools offered by the tidyverse, data scientists can easily identify and address common data cleaning challenges, such as missing values, inconsistent formatting, and outliers. 
+
+Furthermore, the standardized practices encouraged by tidy data principles enable data scientists to establish clear criteria for when data cleaning is complete, thereby reducing ambiguity and subjectivity in the cleaning process.
+
+Overall, the combination of tidy data principles and the tidyverse R packages empowers data scientists to efficiently clean and preprocess datasets, paving the way for more robust and reliable data analysis and interpretation. By adopting these standardized practices, data scientists can streamline their workflow, enhance reproducibility, and ultimately derive more meaningful insights from their data.
