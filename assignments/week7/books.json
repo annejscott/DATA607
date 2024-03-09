@@ -1,0 +1,22 @@
+{
+  "results": [
+    {
+      "title": "Good Omens",
+      "author": "Terry Pratchett and Neil Gaiman",
+      "year": 1990,
+      "rating": 4.26
+    },
+    {
+      "title": "Song of Achilles, The",
+      "author": "Madeline Miller",
+      "year": 2011,
+      "rating": 4.33
+    },
+    {
+      "title": "Sapiens",
+      "author": "Yuval Noah Harai",
+      "year": 2011,
+      "rating": 4.36
+    }
+  ]
+}
