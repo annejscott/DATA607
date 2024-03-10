@@ -1,0 +1,224 @@
+---
+title: "DATA 607 Assignment 7"
+author: "AJ Strauman-Scott"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(knitr)
+```
+
+## Introduction
+
+This assignment challenges us to begin working with html and json files.
+The tasks of this paper are to:
+
+-   Code a table or database of 3 books with corresponding facts by hand in each of the three formats; HTML, XML and JSON.
+
+-   Load the three files into an R project through this markdown document and create three separate dataframes
+
+-   Compare the qualities of each file format's corresponding dataframe - are they identical?
+
+```{r import libraries, message=FALSE, warning=FALSE}
+# Import Libraries
+library(jsonlite)
+library(xml2)
+library(rvest)
+```
+
+## Create the Files
+
+We coded an HTML table, an XML document and a JSON document with title, author, year published and GoodReads average rating.
+
+The code for each of the three files has been copied into this document for assessment.
+Each code chunk exists as a separate, external file for import later when we load the data.
+
+This is the HTML code.
+
+```{r html-file, results='asis'}
+
+cat('
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>Table template</title>
+</head>
+<body>
+  <h1>Books</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Author</th>
+        <th>Year</th>
+        <th>Rating</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Good Omens</td>
+        <td>Terry Pratchett, Neil Gaiman</td>
+        <td>1990</td>
+        <td>4.26</td>
+      </tr>
+      <tr>
+        <td>Song of Achilles, The</td>
+        <td>Madeline Miller</td>
+        <td>2011</td>
+        <td>4.33</td>
+      </tr>
+      <tr>
+        <td>Sapiens</td>
+        <td>Yuval Noah Harai</td>
+        <td>2011</td>
+        <td>4.36</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>
+')
+```
+
+This is the XML code for the same data.
+
+```{r xml, results='asis'}
+cat('
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width"/>
+  <title>Table template</title>
+</head>
+<body>
+  <h1>Books</h1>
+  <table>
+    <tbody>
+      <tr>
+        <td>Title</td>
+        <td>Author</td>
+        <td>Year</td>
+        <td>Rating</td>
+      </tr>
+      <tr>
+        <td>Good Omens</td>
+        <td>Terry Pratchett, Neil Gaiman</td>
+        <td>1990</td>
+        <td>4.26</td>
+      </tr>
+      <tr>
+        <td>Song of Achilles, The</td>
+        <td>Madeline Miller</td>
+        <td>2011</td>
+        <td>4.33</td>
+      </tr>
+      <tr>
+        <td>Sapiens</td>
+        <td>Yuval Noah Harai</td>
+        <td>2011</td>
+        <td>4.36</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>
+
+')
+```
+
+And these are the same data coded into a JSON file.
+
+```{r json-file}
+json_info <- '{
+  "results": [
+    {
+      "title": "Good Omens",
+      "author": "Terry Pratchett and Neil Gaiman",
+      "year": 1990,
+      "rating": 4.26
+    },
+    {
+      "title": "Song of Achilles, The",
+      "author": "Madeline Miller",
+      "year": 2011,
+      "rating": 4.33
+    },
+    {
+      "title": "Sapiens",
+      "author": "Yuval Noah Harai",
+      "year": 2011,
+      "rating": 4.36
+    }
+  ]
+}'
+
+```
+
+# Load the Data
+
+With our three files coded, we will now import all three as R data frames from Github links.
+
+```{r html-df}
+html_file <- '/Users/AJStraumanScott/Documents/MSDS/Spring2024/DATA607/607_assignments/Assignments/week_7/files/books.html'
+html_data <- read_html(html_file)
+
+
+titles <- html_text(html_nodes(html_data, "tr td:nth-child(1)"))
+authors <- html_text(html_nodes(html_data, "tr td:nth-child(2)"))
+years <- as.integer(html_text(html_nodes(html_data, "tr td:nth-child(3)")))
+ratings <- as.numeric(html_text(html_nodes(html_data, "tr td:nth-child(4)")))
+
+
+html_df <- data.frame(Title = titles, Author = authors, Year = years, Rating = ratings)
+
+```
+
+The HTML and XML imports require manual extraction for each of the columns of data into vectors, and then combined together again to create a dataframe.
+
+```{r xml-df, warning=FALSE}
+
+xml_file <- "https://github.com/annejscott/DATA607/raw/main/assignments/week7/books.xml"
+xml_data <- read_xml(xml_file)
+
+
+titles <- xml_text(xml_find_all(xml_data, "//tr[position() > 1]/td[1]"))
+authors <- xml_text(xml_find_all(xml_data, "//tr[position() > 1]/td[2]"))
+years <- as.integer(xml_text(xml_find_all(xml_data, "//tr[position() > 1]/td[3]")))
+ratings <- as.numeric(xml_text(xml_find_all(xml_data, "//tr[position() > 1]/td[4]")))
+
+
+xml_df <- data.frame(Title = titles, Author = authors, Year = years, Rating = ratings)
+
+```
+
+The JSON file does not need anything extracted, and once imported is easily converted to a data frame.
+
+```{r json-df}
+url <- 'https://raw.githubusercontent.com/annejscott/DATA607/main/assignments/week7/books.json'
+
+json_data <- fromJSON(url)
+
+json_df <- as.data.frame(json_data$results)
+```
+
+## Compare the Tables
+```{r kable-functions, echo=FALSE}
+kable(html_df, format = "markdown")
+kable(xml_df, format = "markdown")
+kable(json_df, format = "markdown")
+```
+
+When comparing the resulting data frames from each of our original file formats, all three are functionally identical once successfully loaded into R and converted to data frames. Each has 3 observations of 4 variables, with 'Title' and 'Author' as character vectors, 'Year' as an integer vector and 'Rating' as a numerical vector.
+
+The process to get each file format there is different, but once converted, the tables are the same.
+
+## Conclusion
+
+This paper has achieved its three tasks. The same data about 3 books has been coded into HTML, XML and JSON formats. All three code blocks have been saved as separate files and loaded into R. All three have been converted to dataframes. And when compared, we determined that the dataframes were functionally identical.
