@@ -1,0 +1,103 @@
+---
+title: "607 Assignment 9: Working with New York Times APIs"
+format:
+  jasa-html:
+    keep-tex: true  
+    journal:
+      blinded: false
+  jasa-pdf: default
+date: last-modified
+author:
+  - name: "AJ Strauman-Scott"
+    affiliations:
+      - name: City University of New York SPS
+        department: Department of Data Analytics
+bibliography: bibliography.bib  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This paper's assignment is to choose one of the New York Times Developer APIs and use it to construct an interface in R to read in the JSON data, and transform it into an R DataFrame.
+
+I signed up for an API account with the New York Times [@nytapi] and have an API key for their Books API database. Usually I would exclude this code block from the paper for privacy, but NYT API keys are very easy to obtain and I am not worried about theft.
+
+```{r api-key}
+my_key <- "SeZvfnASli7GtvldRaXj6yOkf9QoLbui"
+```
+
+These are the libraries I need to call web APIs, most importantly the `httr2` package [@httr2doc] for requesting data from web servers and interpreting the responses.
+
+```{r load-libraries}
+library(httr2)
+library(jsonlite)
+```
+
+Using these packages, I construct an interface to query the API and parse the response into JSON format, and then into an R data frame.
+
+I included a success check in my function so that I don't have to check for success manually.
+
+```{r construct-api-interface}
+api_books_author <- function(url_ext, search_parm) {
+  response <- request('https://api.nytimes.com/svc/books/v3') |>
+    req_url_path_append(url_ext) |>
+    req_url_query(`api-key` = my_key, author = search_parm) |> 
+    req_perform() 
+  
+  if (response$status == 200) {
+    raw_content <- resp_body_string(response)
+    raw_data <- fromJSON(raw_content, flatten = TRUE) |> 
+      data.frame()
+    return(raw_data)
+  } else {
+    cat("Error:", resp_body_string(response), "\n")
+    return(NULL)
+  }
+}
+```
+
+Using my custom API function, I can make queries to any of the NYT Book API databases.
+
+Let's look up reviews of all Neil Gaiman's books.
+
+```{r gaiman-reviews}
+neil_gaiman_reviews <- api_books_author(url_ext = "/reviews.json", search_parm = "Neil Gaiman")
+
+knitr::kable(neil_gaiman_reviews)
+```
+
+Now lets look up all of Terry Pratchett's best sellers:
+
+```{r terry-pratchett}
+terry_pratchett_bestsellers <- api_books_author(url_ext = "/lists/best-sellers/history.json", search_parm = "Terry Pratchett")
+
+knitr::kable(terry_pratchett_bestsellers)
+```
+
+And finally, let's look at the bestseller list from my wedding date, July 13th 2019. I'm going to have to update. my function since we're searching for dates, not authors.
+
+```{r bestseller-list}
+api_bestseller_date <- function(url_ext, search_parm) {
+  response <- request('https://api.nytimes.com/svc/books/v3') |> 
+    req_url_path_append(url_ext) |>
+    req_url_query(`api-key` = my_key, published_date = search_parm) |> 
+    req_perform() 
+  
+  if (response$status == 200) {
+    raw_content <- resp_body_string(response)
+    raw_data <- fromJSON(raw_content, flatten = TRUE) |> 
+      data.frame()
+    return(raw_data)
+  } else {
+    cat("Error:", resp_body_string(response), "\n")
+    return(NULL)
+  }
+}
+
+anniversary_bestseller_list <- api_bestseller_date(url_ext = "/lists/full-overview.json", search_parm = "2019-07-13")
+
+knitr::kable(anniversary_bestseller_list)
+```
+
+In conclusion, web APIs are an excellent way of maintaining and querying large amounts of constantly updating data, allowing immediate updates to the data with which data scientists work.
