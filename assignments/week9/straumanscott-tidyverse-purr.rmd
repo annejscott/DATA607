@@ -1,4 +1,85 @@
 ---
+title: "tidyverse CREATE: using the `purrr` package with data"
+format:
+  jasa-html:
+    keep-tex: true  
+    journal:
+      blinded: false
+date: last-modified
+author:
+  - name: "AJ Strauman-Scott"
+    affiliations:
+      - name: City University of New York SPS
+        department: Department of Data Analytics
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This paper will use a sample dataset from Kaggle.com to 
+create a programming sample “vignette” that demonstrates how to use the  map functions of the `purrr` TidyVerse package [@purrr].
+
+The 'purrr' package loads automatically as part of the `tidyverse` series of R packages.
+
+```{r load-libraries, message=FALSE}
+library(tidyverse)
+```
+
+We load a dataset from Kaggle.com with data from All data is from American Community Survey 2010-2012 Public Use Microdata Series [@kaggle].
+
+```{r}
+majors <- read_csv('https://github.com/annejscott/DATA607/raw/main/assignments/week9/all-ages.csv', col_names = TRUE, show_col_types = FALSE) |> 
+  as.data.frame()
+```
+
+To create a new column with the percent of graduates from each major who are employed full time, we define a function to calculate the percentage employed, and then use the `purrr` package to `map` that function onto our data (in this case, `purrr::map2_dbl()` specifically.
+
+```{r function-def}
+calculate_proportion_employed <- function(full_time_employed, total) {
+  proportion <- full_time_employed / total
+  return(proportion)
+}
+
+majors <- majors |> 
+  mutate(proportion_employed = purrr::map2_dbl(Employed_full_time_year_round, Total, calculate_proportion_employed)) |> 
+  arrange(desc(proportion_employed))
+
+head(majors)
+```
+
+'Management Information Systems and Statistics' and 'Computer and Information Systems' are the majors that have the highest rates of post-graduate employment.
+
+All of our majors are in full capital letters. Let's use `purrr::map_chr()` with `str_to_title()` from the `tidyverse` `stringr` package to change that into proper grammea.
+
+```{r}
+majors$Major <- purrr::map_chr(majors$Major, ~str_to_title(.x))
+
+head(majors)
+```
+
+
+We load another .csv file from the same dataset, this time the information on gender breakdown in each major.
+
+```{r}
+women_stem <- read_csv('https://github.com/annejscott/DATA607/raw/main/assignments/week9/women-stem.csv', col_names = TRUE, show_col_types = FALSE) |> 
+  as.data.frame()
+```
+
+The `women_stem` dataset has information on gender proportions that doesn't exist in the `majors` dataset. Even though the datasets have different numbers of observations,the  `purrr::map_dbl()` function can map the values from one data set into another.
+
+```{r}
+# apply str_to_title to women_stem df so strings in Major column match
+women_stem$Major <- purrr::map_chr(women_stem$Major, ~str_to_title(.x))
+
+sharewomen_map <- setNames(women_stem$ShareWomen, women_stem$Major)
+
+majors$ShareWomen <- purrr::map_dbl(majors$Major, ~ sharewomen_map[.x])
+
+head(majors)
+```
+
+
+---
 title: "tidyverse CREATE: using purrr with data"
 output: html_document
 date: last-modified
